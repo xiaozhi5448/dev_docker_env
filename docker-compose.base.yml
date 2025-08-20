@@ -1,0 +1,35 @@
+volumes:
+  mysql-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/xiaozhi/data/mysql-data
+      o: bind
+  redis-6379-data:
+  redis-6380-data:
+  redis-6381-data:
+  redis-6382-data:
+  redis-6383-data:
+  redis-6384-data:
+
+networks:
+  web-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+  db-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16
+  redis-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.23.0.0/16
+  mq-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.24.0.0/16

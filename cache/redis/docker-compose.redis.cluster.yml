@@ -1,0 +1,176 @@
+version: '3.8'
+services:
+  # 主节点 1
+  redis-6379:
+    image: redis:7.2-alpine
+    container_name: redis-6379
+    restart: always
+    ports:
+      - "6379:6379"       # 客户端端口
+      - "16379:16379"     # 集群总线端口(客户端端口+10000)
+    volumes:
+      - redis-6379-data:/data
+      - ./redis.conf:/etc/redis/redis.conf  # 挂载外部配置
+    environment:
+      - TZ=Asia/Shanghai  # 设置时区
+    command: >
+      redis-server /etc/redis/redis.conf
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+      --bind 0.0.0.0
+    networks:
+      redis-net:
+        ipv4_address: 172.20.0.11  # 固定IP
+
+  # 主节点 2
+  redis-6380:
+    image: redis:7.2-alpine
+    container_name: redis-6380
+    restart: always
+    ports:
+      - "6380:6379"
+      - "16380:16379"
+    volumes:
+      - redis-6380-data:/data
+      - ./redis.conf:/etc/redis/redis.conf
+    environment:
+      - TZ=Asia/Shanghai
+    command: >
+      redis-server /etc/redis/redis.conf
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+      --bind 0.0.0.0
+    networks:
+      redis-net:
+        ipv4_address: 172.20.0.12
+
+  # 主节点 3
+  redis-6381:
+    image: redis:7.2-alpine
+    container_name: redis-6381
+    restart: always
+    ports:
+      - "6381:6379"
+      - "16381:16379"
+    volumes:
+      - redis-6381-data:/data
+      - ./redis.conf:/etc/redis/redis.conf
+    environment:
+      - TZ=Asia/Shanghai
+    command: >
+      redis-server /etc/redis/redis.conf
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+      --bind 0.0.0.0
+    networks:
+      redis-net:
+        ipv4_address: 172.20.0.13
+
+  # 从节点 1 (对应主节点6379)
+  redis-6382:
+    image: redis:7.2-alpine
+    container_name: redis-6382
+    restart: always
+    ports:
+      - "6382:6379"
+      - "16382:16379"
+    volumes:
+      - redis-6382-data:/data
+      - ./redis.conf:/etc/redis/redis.conf
+    environment:
+      - TZ=Asia/Shanghai
+    command: >
+      redis-server /etc/redis/redis.conf
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+      --bind 0.0.0.0
+    networks:
+      redis-net:
+        ipv4_address: 172.20.0.14
+
+  # 从节点 2 (对应主节点6380)
+  redis-6383:
+    image: redis:7.2-alpine
+    container_name: redis-6383
+    restart: always
+    ports:
+      - "6383:6379"
+      - "16383:16379"
+    volumes:
+      - redis-6383-data:/data
+      - ./redis.conf:/etc/redis/redis.conf
+    environment:
+      - TZ=Asia/Shanghai
+    command: >
+      redis-server /etc/redis/redis.conf
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+      --bind 0.0.0.0
+    networks:
+      redis-net:
+        ipv4_address: 172.20.0.15
+
+  # 从节点 3 (对应主节点6381)
+  redis-6384:
+    image: redis:7.2-alpine
+    container_name: redis-6384
+    restart: always
+    ports:
+      - "6384:6379"
+      - "16384:16379"
+    volumes:
+      - redis-6384-data:/data
+      - ./redis.conf:/etc/redis/redis.conf
+    environment:
+      - TZ=Asia/Shanghai
+    command: >
+      redis-server /etc/redis/redis.conf
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+      --bind 0.0.0.0
+    networks:
+      redis-net:
+        ipv4_address: 172.20.0.16
+
+  # 集群初始化服务
+  redis-cluster-init:
+    image: redis:7.2-alpine
+    container_name: redis-cluster-init
+    depends_on:
+      - redis-6379
+      - redis-6380
+      - redis-6381
+      - redis-6382
+      - redis-6383
+      - redis-6384
+    networks:
+      - redis-cluster
+    restart: "no"  # 初始化完成后退出
+    command: >
+      sh -c "
+        echo '等待Redis节点启动...' &&
+        sleep 10 &&
+        echo '开始初始化集群...' &&
+        redis-cli --cluster create \
+          172.20.0.11:6379 \
+          172.20.0.12:6379 \
+          172.20.0.13:6379 \
+          172.20.0.14:6379 \
+          172.20.0.15:6379 \
+          172.20.0.16:6379 \
+          --cluster-replicas 1 \
+          --cluster-yes &&
+        echo '集群初始化完成!'
+      "
